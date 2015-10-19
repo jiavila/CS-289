@@ -25,6 +25,8 @@
 # Directories
 /hw1/data
 /hw1/Plots
+/hw3/data
+/hw4/data
 
 # temp files
 *.asv

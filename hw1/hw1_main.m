@@ -9,7 +9,7 @@ addpath('C:\Users\Jesus\Documents\MATLAB\liblinear-2.01\matlab');
 
 %load the data
 my_dir = cd;
-%load(strcat(my_dir, '\data\digit-dataset\train.mat'));
+load(strcat(my_dir, '\data\digit-dataset\train.mat'));
 
 %create a directory of where our plots will be stored
 plots_dir = strcat(my_dir, '\Plots');
@@ -22,7 +22,7 @@ if ~isdir(plots_dir_P4)
     mkdir(plots_dir_P4);
 end
 
-%{
+%
 %separate 10k images for validation and organize them for processing
 [val_images, val_labels, remain_data, remain_labels, I_val, uniq_labels] = ...
     sample_by_label(train_images, train_labels, 10e+3);
@@ -31,7 +31,7 @@ end
 val_images = reshape(val_images, 1, [], size(val_images, 3)); %Turn images into row vectors
 val_images = permute(val_images, [3 2 1]);
 
-%val_images = norm_row(val_images);  %normalize
+val_images = norm_row(val_images);  %normalize
 val_images = sparse(val_images);    %make it sparse
 
 
@@ -50,7 +50,7 @@ for ii = 1:1:numel(N)
     sam_feat_row = permute(sam_feat_row, [3 2 1]); %This reorganizes the order of the 3rd dimension to be the first, second stay the same, etc.
     
     %normalize my matrix
-    %sam_feat_row = norm_row(sam_feat_row);
+    sam_feat_row = norm_row(sam_feat_row);
     
     %make the matrix sparse
     sam_feat_row = sparse(sam_feat_row);
@@ -88,11 +88,11 @@ saveas(h0, strcat(plots_dir, '\P1 - digits_err.jpg'));
 
 
 %% Problem 3
-%{
+%
 %Create a range of values for C
-%C = [.0001 .001 .01 .1 1 10 100 1e+3 1e+4];
-C = [.1 .2 .3 .4 .5 .6 .7 .8 .9 1 2 3 4 5 6 7 8 9 10];
-%C = 1;
+%C = [.0001 .001 .01 .1 1 10 100];
+%C = [.1 .2 .3 .4 .5 .6 .7 .8 .9 1 2 3 4 5 6 7 8 9 10];
+C = .8;
 
 %separate 10k samples for training
 [train_sam_data, train_sam_labels, remain_data, remain_labels, I_val, uniq_labels] = ...
@@ -102,6 +102,9 @@ C = [.1 .2 .3 .4 .5 .6 .7 .8 .9 1 2 3 4 5 6 7 8 9 10];
 k = 10;
 mean_errs = zeros(1, numel(C));
 for ii = 1:1:numel(C)
+    %
+    disp('************************************************');
+    disp(['Training for C = ' num2str(C(ii))]);
     %Randomly split the data into k parts
     [split_data_cell, split_labels_cell, rand_inds_cell] = rand_split_data(train_sam_data, train_sam_labels, 3, k);
     
@@ -130,9 +133,9 @@ for ii = 1:1:numel(C)
         val_data = permute(val_data, [3 2 1]);
         
         %normalize the matrices
-        %train_data = norm_row(train_data);
+        train_data = norm_row(train_data);
         
-        %val_data = norm_row(val_data);
+        val_data = norm_row(val_data);
         
         %make the matrices sparse
         train_data = sparse(train_data);
@@ -167,8 +170,34 @@ xlabel('C'), ylabel('Error (%)'), grid('on');
 saveas(h0, strcat(plots_dir, '\P3 - 10-fold Err vs C.jpg'));
 %}
 
+%Use the optimized value of C with our training data to create a model make
+%the matrices sparse
+C =.8;
+train_data = reshape(train_images, 1, [], size(train_images, 3)); %Turn images into row vectors
+train_data = permute(train_data, [3 2 1]);
+
+train_data = norm_row(train_data);  %normalize
+train_data = sparse(train_data);
+%train_labels = double(training_labels');
+myModel = train(train_labels, train_data,['-c ', num2str(C)]);
+
+%Perform against the test set
+load(strcat(my_dir, '\data\digit-dataset\test.mat'));
+num_tests = size(test_images,3);
+ids = (1:1:num_tests)';%Turn the images into row vectors to make these the features
+test_images = reshape(test_images, 1, [], size(test_images, 3)); %turn the vectors into rows. This is still 3-d
+test_images = permute(test_images, [3 2 1]);    %This reorganizes the order of the 3rd dimension to be the first, second stay the same, etc.
+test_images = norm_row(test_images);            %normalize the matrices
+test_images = sparse(test_images);              %make the matrices sparse
+[pred_test_labels, accuracy, decision_values] = predict(zeros(num_tests,1), test_images, myModel);
+out_data = dataset(ids, pred_test_labels);
+out_data.Properties.VarNames = {'Id', 'Category'};
+export(out_data, 'file', strcat(my_dir,'\kaggle_submission - Digits.csv'), 'Delimiter', ',');
+
+%}
+
 %% Problem 4
-%{
+%
 %load the dataset
 load(strcat(my_dir, '\data\spam-dataset\spam_data.mat'));
 %Create a range of values for C
@@ -182,7 +211,7 @@ C = 1;
 
 
 %for each value of C,
-k = 10;
+k = 12;
 mean_errs = zeros(1, numel(C));
 for ii = 1:1:numel(C)
     
@@ -289,41 +318,47 @@ end
 %make a barplot of the kkth feature
 
 
-%plot the mean error as a function of C
+%plot the mean error as a function of of feature number
 %plot the accuracy vs. number of samples selected
 h0 = figure('visible', 'on', 'units', 'normalized','outerposition',[0 0 1 1]);
 bar(jj_vec, feat_errs), title('P4 - Mean Error vs. Feature #'),
-xlabel('C'), ylabel('Error (%)'), grid('on');
+xlabel('Feature #'), ylabel('Error (%)'), grid('on');
 saveas(h0, strcat(plots_dir_P4, '\P4 - Mean Error vs. Feature No.jpg'));
 %}
+
+
 
 %
 %load the dataset
 load(strcat(my_dir, '\data\spam-dataset\spam_data.mat'));
+
+%{
+%Remove the features that scored above 70% error rate
+%rem_feats = find(feat_errs > 60);
+%rem_feats = [8 9 10 11 12 13 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32];
+rem_feats = [];
+new_training_data = training_data;
+new_training_data(:, rem_feats) = [];
+
 %Create a range of values for C
-C = [1e-6 1e-5 1e-4 .001 .01 .1 1 10 100];
+%C = [1e-6 1e-5 1e-4 .001 .01 .1 1 10 100];
+%C = [.000001 .00001 .0001 .001 .01 .1 1 10 100];
 %C = [.1 .2 .3 .4 .5 .6 .7 .8 .9 1 2 3 4 5 6 7 8 9 10];
-%C = 1;
+%C = .00001;
+C = 1;
 
-%separate 10k samples for training
-%[train_sam_data, train_sam_labels, remain_data, remain_labels, I_val, uniq_labels] = ...
-%    sample_by_label(train_images, train_labels, 10e+3);
-
-
-%for each value of C,
 k = 12;
 mean_errs = zeros(1, numel(C));
 for ii = 1:1:numel(C)
     
     %Remove selected features
-    %rem_feats = [8 9 10 11 12 13 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32];
-    rem_feats = [];
-    new_training_data = training_data;
-    new_training_data(:, rem_feats) = [];
+
+    
+    
     
     %Randomly split the data into k parts.  Make sure to turn the
     %training_labels row vector into column form and from int to double
-    %[split_data_cell, split_labels_cell, rand_inds_cell] = rand_split_data(new_training_data, double(training_labels'), 1, k);
+    [split_data_cell, split_labels_cell, rand_inds_cell] = rand_split_data(new_training_data, double(training_labels'), 1, k);
     
     err_vec = zeros(1, k);
     
@@ -333,6 +368,9 @@ for ii = 1:1:numel(C)
     uniq_labels = unique(training_labels);
     num_uniq_labels = numel(uniq_labels);
     CM = zeros(num_uniq_labels, num_uniq_labels);
+    
+    %get the current C
+    currC = C(ii);
     
     for jj = 1:1:k
         %grab the jth dataset and labels to separate for validation
@@ -374,7 +412,8 @@ for ii = 1:1:numel(C)
         val_data = sparse(val_data);
         
         %Create the SVM
-        myModel = train(train_labels_jj, train_data,['-c ', num2str(C(ii))]);
+        
+        myModel = train(train_labels_jj, train_data,['-c ', num2str(currC)]);
         
         %Test the model
         [pred_labels, accuracy, decision_values] = predict(val_labels, val_data, myModel);
@@ -395,10 +434,10 @@ for ii = 1:1:numel(C)
     CM = CM/k;
     h = figure('visible', 'off', 'units', 'normalized','outerposition',[0 0 1 1]);
     imagesc(uniq_labels,uniq_labels,CM), colorbar,
-        title({['Average CM for C = ' num2str(C(ii)) ]; ...
+        title({['Average CM for C = ' num2str(currC) ]; ...
             ['Mean Error: ' num2str(mean_errs(ii)) ' %']});
     
-    saveas(h, strcat(plots_dir, '\P4 - CM - C = ', num2str(C), '.jpg')); 
+    saveas(h, strcat(plots_dir_P4, '\P4 - CM - C = ', num2str(currC), '.jpg')); 
     close(h);
 end
 
@@ -410,9 +449,26 @@ end
 %plot the accuracy vs. number of samples selected
 %
 h0 = figure('visible', 'on', 'units', 'normalized','outerposition',[0 0 1 1]);
-semilogx(C, mean_errs), title('P3 - 10-fold cross-validation: Mean Error vs. C'),
+semilogx(C, mean_errs), title('P4 - Mean Error vs. C'),
 xlabel('C'), ylabel('Error (%)'), grid('on');
-saveas(h0, strcat(plots_dir, '\P4 - 10-fold Err vs C.jpg'));
+saveas(h0, strcat(plots_dir_P4, '\P4 - 10-fold Err vs C.jpg'));
+%}
+%Use the optimized value of C with our training data to create a model make
+%the matrices sparse
+C =1;
+train_data = sparse(training_data);
+train_labels = double(training_labels');
+myModel = train(train_labels, train_data,['-c ', num2str(C)]);
+
+%Perform against the test set
+num_tests = size(test_data,1);
+ids = (1:1:num_tests)';
+test_data = sparse(test_data);              %make the matrices sparse
+[pred_test_labels, accuracy, decision_values] = predict(zeros(num_tests,1), test_data, myModel);
+out_data = dataset(ids, pred_test_labels);
+out_data.Properties.VarNames = {'Id', 'Category'};
+export(out_data, 'file', strcat(my_dir,'\kaggle_submission - Spam-ham.csv'), 'Delimiter', ',');
+
 %close(h0);
 %}
 

@@ -50,7 +50,7 @@ for ii = 1:1:numel(uniq_labels)
 end
     
 %Separate the data according to our final I
-if num(size(data3)) == 3
+if numel(size(data)) == 3
     sams = data(:,:,I);
     remain_data = data(:,:,~I);
 else
