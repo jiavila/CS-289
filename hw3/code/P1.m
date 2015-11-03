@@ -35,7 +35,8 @@ ypRange = [ypMin ypMax];
 disp(ypRange);
 h = figure('visible', 'on','units', 'normalized','outerposition',[0 0 1 1]);
 subplot(3,1,1), plot(yp); 
-title({'Predicted Median Home Value'; ['Range: [ ' num2str(ypRange) ' ]']});
+title({'Predicted Median Home Value'; ['Range: [ ' num2str(ypRange) ' ]']; ... 
+        ['RSS = ' num2str(RSS, 4)]});
 xlabel('Predicted Home No.');
 ylabel('Median Home Value');
 
